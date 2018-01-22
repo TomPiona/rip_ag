@@ -20,7 +20,9 @@ def __run_tests__(code):
     return score
 
 def __pls_sanitize__():
-    # pls
+    # pls (eval, os limits)
+    # limit run time
+    # keep track of files w/ errors
 
 def run(filename):
 
@@ -29,16 +31,31 @@ def run(filename):
 
     for filename in directory:
 
+        line = [filename]
+
         # open single user file
         notebook = __read_nb__(filename)
 
         # grab all code
         # append some tests and print output?
-        __run_tests__(code)
-        # keep number
+        FR_answers = []
+        code = []
+        for cell in notebook['cells']:
+            if cell['cell_type'] == 'markdown':
+                # if starts with answer
+                    FR_answers.append(written_stuff)
+            if cell['cell_type'] == 'code':
+                code.extend(cell['source'])
+
+
+        sanitized = __pls_sanitize__(code)
+        score = __run_tests__(sanitized)
+        line.append(score)
+        line.extend(FR_answers)
 
         # grab the responses to written answers
         # throw into the same csv
+
 
 
     # for cell in notebook['cells']:
