@@ -4,4 +4,4 @@
 num_FR = 3
 cell_metadata = False
 metadata_tag = ''
-in_cell = '$Answer$'
+in_cell = "<font color='blue'> ANSWER:"

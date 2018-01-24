@@ -1,6 +1,6 @@
 __out_of__ = 2
 
-if variable_to_check == 3:
+if len(my_list) == 10:
 	__score__ += 1
-if func_to_check(4) == 12:
+if len(my_list_sliced) == 5:
 	__score__ += 1
