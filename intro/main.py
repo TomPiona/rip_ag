@@ -2,7 +2,7 @@ import nbformat
 import json
 import re
 import os
-import tests.configs
+import tests.configs as cfg
 
 def __read_nb__(filename):
     """returns the notebook as a dictionary"""
@@ -47,18 +47,32 @@ def __create_tests_(test_text):
 
     return ''.join(test_text)
 
-def __run_tests__(code):
-    print('a')
+def __run_tests__(code, tests):
+    
+    # loading animation
+    # "running for ___"
+    exec(code + '\n' + tests)
+    return __points__, __total__
 
-    # put user code
-    # then test
-    # then return score
 
-def __pls_sanitize__():
+###################################
+###################################
+def __pls_sanitize__(list_of_code):
     # pls (eval, os limits)
     # limit run time
+    # get rid of ok cells / submit cells
     # keep track of files w/ errors
+    # approved imports
     """s"""
+    some_clean = [line for line in list_of_code if not line.startswith('_ =') and \
+        not 'print' in line and not line.startswith('ok.') and \
+        not line.startswith('from client.api.notebook') and \
+        not line.startswith('plt.') and not line.startswith('\tplt.') and\
+        not line.startswith('!')]
+    return [line + '\n\t#for functions' for line in some_clean if line.startswith('def') and not line.endswith('\n')]
+
+###################################
+###################################
 
 def get_notebook_names():
     """returns a list of the path to student notebooks"""
@@ -69,11 +83,35 @@ def get_notebook_names():
                 filenames.append(os.path.join(top, nm))
     return filenames
 
-def run_one(filename):
-    user_id = filename.split('/')[1]
-    return user_id
+def grab_code_and_md(contents):
+    FR_answers = []
+    code = []
+    for cell in contents['cells']:
+        if cell['cell_type'] == 'markdown':
+            if cfg.cell_metadata: # if we used metadata to id answers
+                print('using metadata')
+            else:
+                if cell['source'][0].startswith(cfg.in_cell):
+                    FR_answers.append('\n'.join(cell['source'][len(cfg.in_cell):]))
+        if cell['cell_type'] == 'code':
+            code.extend(cell['source'])
+    return code, FR_answers
 
-def run(filename):
+def run_one(filename, tests):
+    user_id = filename.split('/')[1]
+
+    notebook = __read_nb__(filename)
+    c = grab_code_and_md(notebook)
+    cleaned_code = __pls_sanitize__(c[0])
+    for ln in cleaned_code:
+        print(ln)
+
+    score = __run_tests__('\n'.join(cleaned_code), tests)
+
+    return user_id, score, c[1]
+
+
+def run_all(filename):
 
     # create csv outline
     # user_id, code_score, FR1, FR2, ..., FRn
@@ -91,10 +129,17 @@ def run(filename):
         code = []
         for cell in notebook['cells']:
             if cell['cell_type'] == 'markdown':
-                # if starts with answer
-                    FR_answers.append(written_stuff)
+                if cfg.cell_metadata: # if we used metadata to id answers
+                    print('using metadata')
+                else:
+                    if cell['source'][0].startswith(cfg.in_cell):
+                        FR_answers.append(cell['source'])
             if cell['cell_type'] == 'code':
                 code.extend(cell['source'])
+
+        if len(FR_answers) != cfg.num_FR:
+            print("we've got a problem")
+            print('do something')
 
 
         sanitized = __pls_sanitize__(code)
@@ -119,12 +164,18 @@ def run(filename):
 
     # write csv
 
-if __name__ == '__main__':
-    print('loading tests...\n')
-    test_text = __get_tests__()
-    ts = __create_tests_(test_text)
+# if __name__ == '__main__':
+#     print('loading tests...\n')
+#     test_text = __get_tests__()
+#     ts = __create_tests_(test_text)
 
-    for each in get_notebook_names():
-        print(run_one(each))
+#     for each in get_notebook_names():
+#         print(each)
 
+#     c = run_one('./chench@berkeley.edu/R60P1q/intro.ipynb')
+
+test_text = __get_tests__()
+ts = __create_tests_(test_text)
+
+c = run_one('./chench@berkeley.edu/R60P1q/intro.ipynb', ts)
 
