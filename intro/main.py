@@ -13,6 +13,7 @@ matplotlib.use('TkAgg')
 # TODO: 
 # need to catch failing notebooks
 # needs more testing against notebooks w/ known scores
+# add max time limit & limit functionality
 
 def __read_nb__(filename):
     """returns the notebook as a dictionary"""
@@ -60,35 +61,6 @@ def __run_tests__(code, tests):
     exec(code + '\n' + tests)
     return locals()['__points__'], locals()['__total__']
 
-
-###################################
-###################################
-def __pls_sanitize__(list_of_code):
-    # pls (eval, os limits)
-    # limit run time
-    # get rid of ok cells / submit cells
-    # keep track of files w/ errors
-    # approved imports
-    """s"""
-    some_clean = [line.strip('\n') for line in list_of_code if not line.startswith('_ =') and \
-        not 'print' in line and not '.scatter' in line and not '.plot' in line and \
-        not line.startswith('ok.') and not '___' in line and not 'accounts[[0, 1, 2, 3]].head()' in line and\
-        not line.startswith('from client.api.notebook') and not '...' in line and\
-        not line.startswith('plt.') and not line.startswith('\tplt.') and\
-        not line.startswith('!') and not line.startswith('%') and\
-        not line.startswith('ok =') and not line.startswith('import matplot') and\
-        not 'interact' in line and not 'IntSlider' in line]
-    insertion_adjustment = 0
-    for i in range(len(some_clean)):
-        line = some_clean[i + insertion_adjustment]
-        if line.startswith('for ') or line.startswith('def '):
-            some_clean.insert(i + insertion_adjustment + 1, '    """trouble"""')
-
-    return some_clean
-
-###################################
-###################################
-
 def get_notebook_names():
     """returns a list of the path to student notebooks"""
     filenames = []
@@ -98,6 +70,29 @@ def get_notebook_names():
                 filenames.append(os.path.join(top, nm))
     return filenames
 
+
+def line_is_okay(line):
+    if not line.startswith('_ =') and \
+        not 'print' in line and not '.scatter' in line and not '.plot' in line and \
+        not line.startswith('ok.') and not '___' in line and\
+        not line.startswith('from client.api.notebook') and\
+        not line.startswith('plt.') and not line.startswith('\tplt.') and\
+        not line.startswith('!') and not line.startswith('%') and\
+        not line.startswith('ok =') and not line.startswith('import matplot') and\
+        not 'interact' in line and not 'IntSlider' in line:
+        return True
+    return False
+
+def code_cell_parse(source):
+    insertion_adjustment = 0
+    for i in range(len(source)):
+        if source[i+insertion_adjustment].startswith('def ') or source[i+insertion_adjustment].startswith('for '):
+            source.insert(i+insertion_adjustment+1, '    3\n')
+    source = ["    " + line for line in source if line_is_okay(line)]
+    compiled = ''.join(source) + '\n'
+    if len(source) > 0:
+        return "try: \n" +compiled+"\n    pass\nexcept Exception as e: \n    print(e)\n"
+    return ''
 def grab_code_and_md(contents):
     FR_answers = []
     code = []
@@ -109,7 +104,7 @@ def grab_code_and_md(contents):
                 if cell['source'][0].startswith(cfg.in_cell):
                     FR_answers.append('\n'.join(cell['source'])[len(cfg.in_cell):])
         if cell['cell_type'] == 'code':
-            code.extend(cell['source'])
+            code.extend(code_cell_parse(cell['source']))
     return code, FR_answers
 
 def run_one(filepath, tests):
@@ -119,10 +114,18 @@ def run_one(filepath, tests):
 
     # item zero is code, item 1 is a list of FR answers
     c = grab_code_and_md(notebook)
+    #together = 
 
     # getting numerical score on code questions
-    cleaned_code = __pls_sanitize__(c[0])
-    score = __run_tests__('\n'.join(cleaned_code), tests)
+
+    # print(''.join(c[0]))
+    #cleaned_code = __pls_sanitize__(c[0])
+
+    with open('test.py', 'w') as f:
+        f.write(''.join(c[0]))
+        f.close()
+
+    score = __run_tests__(''.join(c[0]), tests)
 
     # if len(c[1]) != cfg.num_FR:
     #     print("number of FR answers does not align for {}".format(user_id))
