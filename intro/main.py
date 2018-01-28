@@ -2,6 +2,7 @@ import nbformat
 import json
 import re
 import os
+import csv
 import tests.configs as cfg
 
 # extra
@@ -11,9 +12,11 @@ import matplotlib
 matplotlib.use('TkAgg')
 
 # TODO: 
-# need to catch failing notebooks
+# consolidate errors of failing code on individual level
 # needs more testing against notebooks w/ known scores
 # add max time limit & limit functionality
+# break score down into each question
+# create google form for score feedback (making sure autograder works)
 
 def __read_nb__(filename):
     """returns the notebook as a dictionary"""
@@ -70,7 +73,6 @@ def get_notebook_names():
                 filenames.append(os.path.join(top, nm))
     return filenames
 
-
 def line_is_okay(line):
     if not line.startswith('_ =') and \
         not 'print' in line and not '.scatter' in line and not '.plot' in line and \
@@ -93,6 +95,7 @@ def code_cell_parse(source):
     if len(source) > 0:
         return "try: \n" +compiled+"\n    pass\nexcept Exception as e: \n    print(e)\n"
     return ''
+
 def grab_code_and_md(contents):
     FR_answers = []
     code = []
@@ -114,44 +117,37 @@ def run_one(filepath, tests):
 
     # item zero is code, item 1 is a list of FR answers
     c = grab_code_and_md(notebook)
-    #together = 
 
-    # getting numerical score on code questions
-
-    # print(''.join(c[0]))
-    #cleaned_code = __pls_sanitize__(c[0])
-
-    with open('test.py', 'w') as f:
+    with open('last.py', 'w') as f: # for grabbing a notebook that errors
         f.write(''.join(c[0]))
         f.close()
 
+    # getting numerical score on code questions
     score = __run_tests__(''.join(c[0]), tests)
 
     # if len(c[1]) != cfg.num_FR:
     #     print("number of FR answers does not align for {}".format(user_id))
 
-    return user_id, score, c[1]
+    return [user_id] + list(score) + c[1]
 
-@Halo(text='running tests', spinner='dots')
+@Halo(text='running tests ', spinner='dots')
 def run_all():
 
-    # create csv outline
-    # user_id, code_score, FR1, FR2, ..., FRn
-
+    # reading and creating tests
     test_text = __get_tests__()
     ts = __create_tests_(test_text)
+    results = []
 
     for filename in get_notebook_names():
-        l = run_one(filename, ts)
-        print(l)
-
-
-    # write csv
+        result = run_one(filename, ts)
+        results.append(result)
+     
+    # writing results to csv
+    f = open('hw1.csv', 'w')
+    with f:
+        writer = csv.writer(f)
+        writer.writerows(results)
+        f.close()
 
 if __name__ == '__main__':
     run_all()
-
-# test_text = __get_tests__()
-# ts = __create_tests_(test_text)
-
-# c = run_one('./chench@berkeley.edu/R60P1q/intro.ipynb', ts)
