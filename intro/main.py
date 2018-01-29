@@ -15,7 +15,6 @@ matplotlib.use('TkAgg')
 # consolidate errors of failing code on individual level
 # needs more testing against notebooks w/ known scores
 # add max time limit & limit functionality
-# break score down into each question
 # create google form for score feedback (making sure autograder works)
 
 def __read_nb__(filename):
@@ -35,10 +34,10 @@ def __get_tests__():
             f.close()
     return tests
 
-before_all = "\nimport pandas\nimport numpy as np\n__total__ = 0\n__points__ = 0\n"
+before_all = "\nimport pandas\nimport numpy as np\n__total__ = 0\n__question_scores__ = []\n"
 before_each_test = "\n__score__ = 0\n"
-after_each_test = "\n__total__ += __out_of__ \n__points__ += __score__\n"
-after_all = ""#"\nprint('Score: {} out of {}'.format(__points__, __total__))\n"
+after_each_test = "\n__total__ += __out_of__ \n__question_scores__.append(__score__)\n"
+after_all = "\n__points__ = sum(__question_scores__)\n"
 
 def __create_tests_(test_text):
     """creates the test suite to append to student code"""
@@ -62,7 +61,7 @@ def __run_tests__(code, tests):
     # loading animation
     # "running for ___"
     exec(code + '\n' + tests)
-    return locals()['__points__'], locals()['__total__']
+    return locals()['__question_scores__'] + [locals()['__points__']] + [locals()['__total__']]
 
 def get_notebook_names():
     """returns a list of the path to student notebooks"""
@@ -123,12 +122,12 @@ def run_one(filepath, tests):
         f.close()
 
     # getting numerical score on code questions
-    score = __run_tests__(''.join(c[0]), tests)
+    score_list = __run_tests__(''.join(c[0]), tests)
 
     # if len(c[1]) != cfg.num_FR:
     #     print("number of FR answers does not align for {}".format(user_id))
 
-    return [user_id] + list(score) + c[1]
+    return [user_id] + score_list + c[1]
 
 @Halo(text='running tests ', spinner='dots')
 def run_all():
