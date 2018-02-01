@@ -4,12 +4,15 @@ import re
 import os
 import csv
 import tests.configs as cfg
+from timeout import timeout
 
 # extra
 from halo import Halo
 
 import matplotlib
 matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+import pandas as pd
 
 # TODO: 
 # check to see if score csv already exist, have parameter to not run everyone
@@ -38,7 +41,7 @@ def __get_tests__():
             f.close()
     return tests
 
-before_all = "\nimport pandas\nimport numpy as np\n__total__ = 0\n__question_scores__ = []\n"
+before_all = "\nimport pandas\nimport numpy as np\n__total__ = 0\n__question_scores__ = []\n__responses__ = []\n"
 before_each_test = "\n__score__ = 0\n"
 after_each_test = "\n__total__ += __out_of__ \n__question_scores__.append(__score__)\n"
 after_all = "\n__points__ = sum(__question_scores__)\n"
@@ -61,6 +64,7 @@ def __create_tests_(test_text):
 
     return ''.join(test_text)
 
+@timeout(10)
 def __run_tests__(code, tests):
     # loading animation
     # "running for ___"
@@ -128,8 +132,10 @@ def run_one(filepath, tests):
     # getting numerical score on code questions
     score_list = __run_tests__(''.join(c[0]), tests)
 
-    # if len(c[1]) != cfg.num_FR:
-    #     print("number of FR answers does not align for {}".format(user_id))
+    if len(c[1]) != cfg.num_FR:
+        print('!!!!!!!!!!!!')
+        print("number of FR answers does not align for {}".format(user_id))
+        print('!!!!!!!!!!!!')
 
     return [user_id] + score_list + c[1]
 
@@ -141,17 +147,33 @@ def run_all():
     test_text = __get_tests__()
     ts = __create_tests_(test_text)
     results = []
+    no_good = []
 
     for filename in get_notebook_names():
-        result = run_one(filename, ts)
-        results.append(result)
+        try:
+            result = run_one(filename, ts)
+            results.append(result)
+        except Exception as e:
+            print('not giving a score to {} bc {}'.format(filename, e))
+            no_good.append(tuple([filename, e]))
+        
      
     # writing results to csv
+    num_tests = len([file for file in os.listdir('./tests') if file.startswith('test')])
+    title_row = ['email'] + [str(i) for i in range(1, num_tests+1)] + ['Total Score', 'Out of'] + ['free response ' + str(i) for i in range(1, cfg.num_FR+1)]
+    results.insert(0, title_row)
+
     f = open('hw1.csv', 'w')
     with f:
         writer = csv.writer(f)
         writer.writerows(results)
         f.close()
+
+    print('no scores for {} people'.format(len(no_good)))
+    for name, reason in no_good:
+        print(name, ':', reason)
+
+
 
 if __name__ == '__main__':
     run_all()
