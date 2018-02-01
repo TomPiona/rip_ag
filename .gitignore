@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# class information to keep local
+roster.csv
+recent_intro/
+hw*.csv
+last.py
