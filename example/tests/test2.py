@@ -1,7 +1,10 @@
 __out_of__ = 1
 
 try:
-    if len(my_list) == 10 and len(my_list_sliced) == 5 and last_of_sliced == my_list_sliced[4]:
+    import numpy as np
+    if np.isclose(Output_per_worker2050, 468103, atol=1000)\
+        and np.isclose(Output_per_worker2100, 1055954, atol=1000)\
+        and np.isclose(Output_per_worker2150, 2280114, atol=1000):
         __score__ += 1
 except: 
   pass

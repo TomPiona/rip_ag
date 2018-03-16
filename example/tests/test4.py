@@ -1,7 +1,8 @@
 __out_of__ = 1
 
 try:
-    if replace_with_y([2, 5, 63, 29, 1, 49, 17, 24], 7, 18) == [2, 5, 18, 29, 1, 18, 17, 24]:
+    import numpy as np
+    if np.isclose(SoLtypical1400to1600, 916, atol=10) and np.isclose(SoLtypical1900to1950, 1405, atol=10):
         __score__ += 1
 except: 
   pass
